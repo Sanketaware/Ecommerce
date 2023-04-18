@@ -1,0 +1,87 @@
+package com.ecomm.controller;
+
+import java.io.IOException;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.ecomm.dto.ProductDto;
+import com.ecomm.entities.Product;
+import com.ecomm.service.ProductService;
+
+@CrossOrigin
+@RestController
+@RequestMapping("/products")
+public class ProductController {
+
+    public ProductController() {
+	System.out.println("Inside ProductController");
+    }
+	
+	@Autowired
+	private ProductService productService; 
+
+	
+	
+	@GetMapping("/allproducts")
+	public ResponseEntity<?> getAllProducts()
+	{
+	   System.out.println("Inside getAllProducts");	
+	try {
+	    	return new ResponseEntity<>(productService.fetchAllProducts(),HttpStatus.OK);	
+    	} catch (Exception e) {
+	    	return new ResponseEntity<>("Error Processing Request",HttpStatus.NOT_FOUND);	
+     	} 
+	}
+	
+     
+   	@GetMapping("/{Id}")
+	public ResponseEntity<?> getProductById(@PathVariable Long Id)
+	{
+		System.out.println("Inside getProductById");
+		try {
+	    	return new ResponseEntity<>(productService.fetchByProductId(Id),HttpStatus.OK);	
+    	} catch (Exception e) {
+	    	return new ResponseEntity<>("Invalid Product Id",HttpStatus.NOT_FOUND);	
+     	} 
+	}
+	
+   	@GetMapping("/cats")
+	public ResponseEntity<?> findCategoryProducts(@RequestParam String category) {
+		return new ResponseEntity<>(productService.fetchproductsByCat(category),HttpStatus.OK) ;
+	}
+	
+   	@GetMapping("/cats/subcat")
+	public ResponseEntity<?> findCategoryProducts(@RequestParam String category,@RequestParam String subcat ) {
+		return new ResponseEntity<>(productService.fetchproductsByCatAndSubcat(category,subcat),HttpStatus.OK) ;
+	}
+   	
+   	
+   	@PreAuthorize("hasRole('SELLER')")
+   	@PostMapping
+	public ResponseEntity<?> saveProduct(ProductDto dto) throws IOException {
+		return new ResponseEntity<>(productService.addProduct(dto,dto.getImage()),HttpStatus.OK);
+	}
+   	
+   	
+   	
+   	@PreAuthorize("hasRole('SELLER')")
+	@DeleteMapping("/{Id}")
+	public String deleteProductById(@PathVariable Long Id)
+	{
+		System.out.println("Inside DeleteProductById");
+		return 	productService.deleteProductById(Id);
+		
+	}
+	
+}

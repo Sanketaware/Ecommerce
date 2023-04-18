@@ -1,0 +1,122 @@
+package com.ecomm.controller;
+
+import java.util.List;
+
+import javax.validation.Valid;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.ecomm.custom_exception.ResourceNotFoundException;
+import com.ecomm.dto.UserDto;
+import com.ecomm.entities.User;
+import com.ecomm.service.UserService;
+
+@CrossOrigin
+@RestController
+@RequestMapping("/users")
+public class UserController {
+
+	@Autowired
+	private UserService userService;
+
+	public UserController() {
+	System.out.println("Inside User Controller");	
+	} 
+	
+	
+	@PostMapping("/login")
+	public ResponseEntity<?> AuthenticateUser(@RequestBody User user)
+	{
+		System.out.println("Inside AuthenticateUser");
+		
+		try {	
+		return new ResponseEntity<>(userService.authenticateUser(user.getEmail(), user.getPassword()),HttpStatus.OK);		
+			
+		} catch (Exception e) {
+		return new ResponseEntity<>(e.getMessage(),HttpStatus.NOT_FOUND);		
+			
+		}
+	}
+	
+	
+	
+	
+	@GetMapping()
+	public List<UserDto> getAllCustomers(@RequestParam(name="userRole") String userRole)
+	{
+		if(userRole != null) {
+			System.out.println("inside getAllCustomers");
+			return userService.getAllCustomer(userRole);	
+		}else {
+			throw new ResourceNotFoundException("Role empty:"+userRole);
+		}		
+	}
+	
+
+	
+	@GetMapping("/{Id}")
+	public ResponseEntity<?> fetchUserById(@PathVariable Long Id )
+	{
+		System.out.println("Inside FetchUserById");
+		try {
+			return new ResponseEntity<>(userService.getDetails(Id), HttpStatus.OK);
+		} catch (RuntimeException e) {
+			return new ResponseEntity<>(e.getMessage(), HttpStatus.NOT_FOUND);
+		}
+	}
+	
+	
+	@PutMapping("/{id}")
+	public ResponseEntity<?> updateProfile(@RequestBody @Valid UserDto Updateduser,@PathVariable Long id)
+	{
+	 System.out.println("Inside UpdateUserDetails");	
+	    
+	       try {
+			return new ResponseEntity<>(userService.updateUserDetails(id, Updateduser),HttpStatus.OK);
+		} catch (Exception e) {
+		return new ResponseEntity<>(e.getMessage(),HttpStatus.NOT_FOUND);
+		}
+	 
+	}
+
+	
+	@PostMapping("/signup")
+	public UserDto RegisterUser(@RequestBody UserDto newuser)
+	{
+		System.out.println("Inside Register User:"+newuser.toString()
+		);
+		return userService.registerUser(newuser);	
+	}
+
+	@PostMapping("/signup-seller")
+	public UserDto RegisterSeller(@RequestBody UserDto newuser)
+	{
+		System.out.println("Inside Register Seller:"+newuser.toString()
+		);
+		return userService.registerSeller(newuser);	
+	}
+	
+	@DeleteMapping("/{Id}")
+	public ResponseEntity<?> DeleteUser(@PathVariable Long Id)
+	{
+		System.out.println("Inside Delete User");
+		try {
+			return new ResponseEntity<>(userService.deleteUserDetails(Id),HttpStatus.OK);
+		} catch (Exception e) {
+			return new ResponseEntity<>(e.getMessage(),HttpStatus.NOT_FOUND);	      
+		}
+	}
+		
+}

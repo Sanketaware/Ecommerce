@@ -1,0 +1,64 @@
+package com.ecomm.entities;
+
+import java.time.LocalDateTime;
+
+import javax.persistence.CascadeType;
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.EnumType;
+import javax.persistence.Enumerated;
+import javax.persistence.GeneratedValue;
+import javax.persistence.GenerationType;
+import javax.persistence.Id;
+import javax.persistence.OneToOne;
+import javax.persistence.Table;
+
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.ToString;
+
+@Getter
+@Setter
+@NoArgsConstructor
+@ToString
+@Entity
+@Table(name ="users")
+public class User {
+
+	@Id
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	private Long userId;
+	
+	@Column(nullable = false, length = 30)
+	private String userName;
+	
+	@Enumerated(EnumType.STRING)
+	private Role role;
+	
+	
+	@Column(name ="LastLogin_Timestamp",insertable = true , updatable = false , nullable = true)
+    private LocalDateTime lastLoginTimeStamp;
+    
+	@Column(unique = true, nullable = false, length = 30)
+	private String email;
+	
+	@Column(nullable = false ,length = 100)
+    private String password;
+    
+	@OneToOne(cascade = CascadeType.ALL,mappedBy="user")
+	private UserInfo userInfo;
+	
+	@OneToOne(cascade = CascadeType.ALL,mappedBy = "CartOwner")
+	private Cart shoppingcart;
+
+
+	public User(String userName, Role role, LocalDateTime lastLoginTimeStamp, String password) {
+		super();
+		this.userName = userName;
+		this.role = role;
+		this.lastLoginTimeStamp = lastLoginTimeStamp;
+		this.password = password;
+	}
+
+}

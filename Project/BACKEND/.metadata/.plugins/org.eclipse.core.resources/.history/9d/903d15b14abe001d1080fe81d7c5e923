@@ -1,0 +1,165 @@
+package com.ecomm.service;
+
+import java.io.IOException;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+
+import javax.transaction.Transactional;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
+
+import com.ecomm.custom_exception.ResourceNotFoundException;
+import com.ecomm.dto.ProductDto;
+import com.ecomm.dto.ProductResponseDto;
+import com.ecomm.entities.Product;
+import com.ecomm.entities.User;
+import com.ecomm.image_utils.ImageService;
+import com.ecomm.repository.ProductRepo;
+
+
+@Service
+@Transactional
+public class ProductServiceImpl implements ProductService {
+
+	@Autowired
+	private ProductRepo productRepo;
+	
+	@Autowired
+	private UserService userService;
+	
+	@Autowired
+	private ImageService imageService; 
+	
+	private ProductResponseDto BuildProductResponseDto(Product newProduct)
+	{
+	    @SuppressWarnings("static-access")
+	    ProductResponseDto newProductResponseDto = new ProductResponseDto()
+	    		.builder()
+	    		.productname(newProduct.getProductName())
+	    		.brand(newProduct.getBrand())
+	    		.price(newProduct.getPrice())
+	    		.category(newProduct.getCategory())
+	    		.subcat(newProduct.getSubcategory())
+	    		.description(newProduct.getDescription())
+	    		.photo(newProduct.getPhoto())
+	    		.build();
+		return newProductResponseDto;
+	}
+	
+	
+	
+	@SuppressWarnings("static-access")
+	@Override
+	public List<ProductResponseDto> fetchAllProducts() {
+	 List<ProductResponseDto> Responseproducts = new ArrayList<ProductResponseDto>();
+		List<Product> pds = productRepo.findAll();
+		 pds
+		 .stream()
+		 .forEach(product ->{
+			 ProductResponseDto productResponseDto= BuildProductResponseDto(product);
+			 productResponseDto.setPhoto(product.getPhoto());
+			 Responseproducts.add(productResponseDto);
+		 }); 
+		return Responseproducts; 
+	}
+ 
+   
+	
+	@Override
+	public ProductResponseDto fetchByProductId(Long Id) {
+		Product responseProduct = productRepo.findById(Id)
+				.orElseThrow(() -> new ResourceNotFoundException("Invalid Product Id"));
+		ProductResponseDto productresDto= BuildProductResponseDto(responseProduct);
+		productresDto.setPhoto(responseProduct.getPhoto()); 
+	return productresDto ;
+	}
+
+	
+	
+	@Override
+	public String deleteProductById(Long Id) {
+		
+		try {
+			Product responseProduct = productRepo.findById(Id)
+					.orElseThrow(() -> new ResourceNotFoundException("Invalid Product Id"));
+			productRepo.delete(responseProduct);
+			return "Product with Id "+Id+ " Deleted Successfully";		
+		} catch (Exception e) {
+			return "Invalid Product Id";
+				// TODO: handle exception
+		}
+	}
+
+	@Override
+	public List<ProductResponseDto> fetchproductsByCat(String category) {
+		List<ProductResponseDto> productsResDto = new ArrayList<ProductResponseDto>();
+		List<Product> pds = productRepo.findByCategory(category);
+		 pds
+		 .stream()
+		 .forEach(product ->{
+			 ProductResponseDto prodDto=  BuildProductResponseDto(product);
+			prodDto.setPhoto(product.getPhoto());
+			productsResDto.add(prodDto);
+		 }); 
+
+		return productsResDto;
+	}
+
+	
+	
+	@Override
+	public List<ProductResponseDto> fetchproductsByCatAndSubcat(String category , String Subcat) {
+		List<ProductResponseDto> productsResDto = new ArrayList<ProductResponseDto>();
+		List<Product> pds = productRepo.findByCategoryCategoryNameAndCategorySubCat(category,Subcat);
+		 pds
+		 .stream()
+		 .forEach(product ->{
+			 ProductResponseDto prodDto=  BuildProductResponseDto(product);
+			prodDto.setPhoto(product.getPhoto());
+			productsResDto.add(prodDto);
+		 }); 
+
+		return productsResDto;
+	}
+
+	
+	@Override
+	public Product addProduct(ProductDto productdto, MultipartFile image) throws IOException {
+		System.out.println(productdto);
+		User Seller = userService.findById(productdto.getSellerId()); 
+		Product product = imageService.saveImage(productdto, image);
+		product.setCreatedTimeStamp(LocalDateTime.now());
+		product.setUser(Seller);
+		productRepo.save(product);
+		return product;
+	}
+
+	@Override
+	public void updateProduct(ProductDto dto) {
+		System.out.println("before updating the product details");
+		Product product = productRepo.findById(dto.getProdId()).orElseThrow(() -> new ResourceNotFoundException("Product not found!!!"));
+		//Seller seller = sellerDao.findById(dto.getSellerId()).orElseThrow(() -> new ResourceNotFoundException("Seller not found!!!"));
+		//product.setSeller(seller);
+		System.out.println("after updating the product details");
+		product.setProductName(dto.getProductName());
+		product.setBrand(dto.getBrand());
+	  //Add Other Product Properties
+		product.setPrice(dto.getPrice());
+		product.setCreatedTimeStamp(LocalDateTime.now());
+		product.setDescription(dto.getDescription());
+		productRepo.flush();
+		
+	}
+
+
+
+	@Override
+	public List<ProductResponseDto> fetchProductsBySellerId(Long Id) {
+		// TODO Auto-generated method stub
+		return null;
+	}	
+
+}

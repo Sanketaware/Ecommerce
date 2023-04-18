@@ -1,0 +1,5 @@
+package com.ecomm.dto;
+
+public class UserResponseDto {
+
+}

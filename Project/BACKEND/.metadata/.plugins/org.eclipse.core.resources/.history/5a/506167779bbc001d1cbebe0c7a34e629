@@ -1,0 +1,162 @@
+package com.ecomm.service;
+
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+
+import javax.transaction.Transactional;
+
+import org.modelmapper.ModelMapper;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import com.ecomm.custom_exception.ResourceNotFoundException;
+import com.ecomm.dto.UserDto;
+import com.ecomm.entities.Cart;
+import com.ecomm.entities.Role;
+import com.ecomm.entities.User;
+import com.ecomm.entities.UserInfo;
+import com.ecomm.repository.UserRepo;
+
+@Service
+@Transactional
+public class UserServiceImpl implements UserService{
+
+	@Autowired
+	private UserRepo userRepo;
+	
+	@Autowired
+	private ModelMapper mapper;
+	
+	private UserDto buildUserDto(User user) {
+		@SuppressWarnings("static-access")
+		UserDto newUserDto = new UserDto()
+				.builder()
+				.age(user.getUserInfo().getAge())
+				.email(user.getEmail())
+				.firstName(user.getUserInfo().getFirstName())
+				.lastName(user.getUserInfo().getLastName())
+				.password(user.getPassword())
+				.mobile_No(user.getUserInfo().getMobile_No())
+				.pan(user.getUserInfo().getPan())
+				.userRole(user.getRole())
+				.userId(user.getUserId())
+				.build();
+		return newUserDto;
+	}
+	
+//	@Override
+//	public User authenticateUser(String email, String pass) {
+//	User user = udao.findByUserInfoContainingEmailAndPassword(email, pass)
+//			.orElseThrow(()-> new ResourceNotFoundException("Invalid Credentials !! UserNot F0und"));		
+//		return user;
+//	}
+
+	@Override
+	public List<UserDto> getAllCustomer(String userRole) {
+	   List<UserDto> userDtoList = new ArrayList<>();	
+	   List<User> userList = userRepo.findByRole(Role.valueOf(userRole) );
+	 	if(!userList.isEmpty()) {
+	 		userList
+	 		  .stream()
+	 		  .forEach(c -> userDtoList.add(buildUserDto(c)));
+	 		 //Check For ERRORS	
+	 	}
+	 	return userDtoList;
+	}
+
+	
+	@Override
+	public UserDto getDetails(Long custId) {
+		
+		 User userEntity = userRepo.findById(custId)
+				.orElseThrow(()-> new ResourceNotFoundException("Invalid Customer ID !"));	
+		 UserDto userDto = buildUserDto(userEntity);
+		 return userDto;
+		}
+	
+
+	@Override
+	public String deleteUserDetails(Long userId) {
+		User user=userRepo.findById(userId)
+				.orElseThrow(()-> new ResourceNotFoundException("Invalid User Id ! Deletion failed"));
+		userRepo.deleteById(user.getUserId());
+				
+		return "User Info for USERID =" + userId +"  Deleted Successfully";
+	}
+
+	
+	@Override
+	public UserDto registerUser(UserDto customer) {
+			User user = new User();
+	user.setEmail(customer.getEmail());
+	user.setPassword(customer.getPassword());
+	user.setRole(customer.getUserRole());
+    user.setCreatedTimeStamp(LocalDateTime.now());
+    //
+    UserInfo userinfo = new UserInfo();
+	userinfo.setAge(customer.getAge());	
+   
+	userinfo.setLastName(customer.getLastName());
+    userinfo.setFirstName(customer.getFirstName());
+    userinfo.setMobile_No(customer.getMobile_No());
+    userinfo.setPan(customer.getPan());
+    user.setUserInfo(userinfo);
+    
+	//    
+   
+    //
+   Cart shoppingCart= new Cart();
+	shoppingCart.setModifiedDate(LocalDateTime.now());
+   shoppingCart.setCartOwner(user);
+	userRepo.save(user);
+   return customer;	
+	}
+
+	
+	
+	@Override
+	public UserDto updateUserDetails(Long userId ,UserDto userdto) {
+		User existingUser = userRepo.findById(userId)
+				.orElseThrow(()-> new ResourceNotFoundException("Invalid user Id"));
+		
+		existingUser.setShoppingcart(existingUser.getShoppingcart());
+		existingUser.setEmail(userdto.getEmail());
+		existingUser.setPassword(userdto.getPassword());
+		existingUser.setCreatedTimeStamp(LocalDateTime.now());
+		//
+		UserInfo userinfo = new UserInfo();
+		userinfo.setAge(userdto.getAge());	
+	    userinfo.setLastName(userdto.getLastName());
+	    userinfo.setFirstName(userdto.getFirstName());
+	    userinfo.setMobile_No(userdto.getMobile_No());
+	    userinfo.setPan(userdto.getPan());
+	    existingUser.setUserInfo(userinfo);
+		
+		userRepo.save(existingUser);
+	        return userdto;
+	}
+
+	@Override
+	public String authenticateUser(String email, String pass) {
+		User user = userRepo.findByEmailAndPassword(email, pass);
+		if(user != null)
+		{return "LOGIN SUCCESSFULL";}
+		else
+		{
+			return "INVALID ID OR PASSWORD !!";
+		}
+	}
+	
+
+
+	@Override
+	public User findById(Long sellerId) {
+		User seller =  userRepo.findById(sellerId)
+				.orElseThrow(() -> new ResourceNotFoundException("Invalid User Id"));
+		return seller;
+	}
+
+	
+	
+}

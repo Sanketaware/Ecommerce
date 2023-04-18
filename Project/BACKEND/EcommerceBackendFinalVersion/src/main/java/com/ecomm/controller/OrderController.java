@@ -1,0 +1,105 @@
+package com.ecomm.controller;
+
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+
+import org.modelmapper.ModelMapper;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.ecomm.dto.CartDto;
+import com.ecomm.dto.OrderDto;
+import com.ecomm.dto.OrderInfoDto;
+import com.ecomm.dto.PlacedOrderDto;
+import com.ecomm.dto.ProductDto;
+import com.ecomm.dto.ProductResponseDto;
+import com.ecomm.entities.Order;
+import com.ecomm.entities.OrderInfo;
+import com.ecomm.entities.Product;
+import com.ecomm.entities.User;
+import com.ecomm.service.OrderInfoService;
+import com.ecomm.service.OrderService;
+import com.ecomm.service.ProductService;
+import com.ecomm.service.UserService;
+
+@CrossOrigin
+@RestController
+@RequestMapping("/orders")
+public class OrderController {
+
+	@Autowired private OrderService orderService;
+	
+	@Autowired private OrderInfoService orderInfoService;
+	
+	@Autowired private UserService userService;
+	
+	@Autowired private ProductService productService;
+	
+	//@Autowired private AddressService addressService;
+	
+	@Autowired private ModelMapper mapper;
+	
+	@GetMapping
+	public ResponseEntity<?> findAllOrders(@RequestParam Optional<Long> custid) {
+		List<Order> result=null;
+		if(custid.isPresent()) {
+			User customer=userService.findById(custid.get());
+			 result= orderService.getCustomerOrders(customer);
+		}else {
+			result = orderService.getAllOrders();
+		}
+		return new ResponseEntity<>(result,HttpStatus.OK);
+	}
+	
+	@PostMapping
+	public ResponseEntity<?> save(@RequestBody PlacedOrderDto dto) {	
+		//Address address=addressService.saveAddress(dto.getAddress());
+		dto.getInvoice().setInvoiceDate(LocalDateTime.now());
+		//dto.setAddress(address);;
+		Order order=new Order();
+		order.setCreatedDate(LocalDateTime.now());
+		order.setOrderStatus("In Process");
+		User customer=userService.findById(dto.getCustomerid());
+		order.setUser(customer);
+		Order orders=orderService.saveOrder(order);
+		
+		for(CartDto cart : dto.getCart()) {
+			OrderInfo od=new OrderInfo();
+			od.setOrder(orders);
+			od.setProductCount(cart.getQuantity());
+			ProductResponseDto productDTO=productService.fetchByProductId(cart.getProductId());
+			Product product=mapper.map(productDTO, Product.class);
+			od.setProduct(product);
+			orderInfoService.saveOrderDetails(od);
+		}
+		return new ResponseEntity<>("Order Placed Successfully",HttpStatus.OK);
+	}
+	
+	@GetMapping("/{id}")
+	public ResponseEntity<?> findOrderById(@PathVariable Long id) {
+		Order order = orderService.findById(id);
+		List<OrderInfo> details=orderInfoService.findByOrder(order);
+		List<OrderInfoDto> detailsdto=new ArrayList<OrderInfoDto>();
+		details.forEach(od -> {
+			OrderInfoDto dto=mapper.map(od, OrderInfoDto.class);
+			detailsdto.add(dto);
+		});
+		OrderDto result=new OrderDto();
+		result.setOrder(order);
+		result.setDetails(detailsdto);
+		return new ResponseEntity<>(result,HttpStatus.OK);
+	}
+	
+	
+}

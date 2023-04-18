@@ -1,0 +1,5 @@
+package com.ecomm.repository;
+
+public interface UserInfoRepo {
+
+}
